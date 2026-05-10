@@ -8,7 +8,7 @@
 \usepackage{array}
 \usepackage{url}
 \usepackage[T1]{fontenc}
-\usepackage{dblfloatfix}  % fixes figure* placement at bottom of pages
+\usepackage{dblfloatfix}
 
 \setlength{\parskip}{1pt}
 
@@ -17,20 +17,19 @@
 \title{Blood Cell Classification Using InceptionV3\\
 Transfer Learning on the BCCD Dataset}
 
-% Simple author block — suitable for internal college submission
 \author{
-  \IEEEauthorblockN{Parag Kumar (23BCS060) \quad Ojas Kumar (23BCS059) \quad Akaisha Sundhan (23BCS009)}
+  \IEEEauthorblockN{Parag Kumar (23BCS060) \quad Rohit Yadav (23BCS077) \quad Rishav Kumar Gupta (23BCS076)}
 }
 
 \maketitle
 
 %-----------------------------------------------------------------------------
 \begin{abstract}
-Automated classification of blood cell types from microscopic images is a critical task in clinical hematology, supporting the diagnosis of infections, anemia, and hematological malignancies. This paper presents an end-to-end deep learning pipeline for four-class blood cell classification using the InceptionV3 convolutional neural network with ImageNet-based transfer learning. The Blood Cell Count and Detection (BCCD) dataset, comprising 9,957 labeled microscopic images across four white blood cell types -- Eosinophil, Lymphocyte, Monocyte, and Neutrophil -- is used for training, validation, and testing. The pretrained InceptionV3 backbone is frozen and only the final fully-connected and auxiliary classifier layers are retrained. The model is trained in PyTorch over 10 epochs using the Adam optimizer, auxiliary loss regularization, and early stopping. Evaluation on the held-out test set yields a classification accuracy of \textbf{61.07\%}, a macro-average F1-score of \textbf{0.61}, and a macro AUC-ROC of \textbf{0.8434}. Per-class AUC values range from 0.793 (Neutrophil) to 0.895 (Monocyte), confirming strong discriminative capability despite moderate classification accuracy.
+Automated classification of blood cell types from microscopic images is a critical task in clinical hematology, supporting rapid diagnosis of infections, anemia, and hematological malignancies. This paper presents an end-to-end deep learning pipeline for four-class blood cell classification using the InceptionV3 convolutional neural network with full fine-tuning via transfer learning. The Blood Cell Count and Detection (BCCD) dataset, comprising 9,957 labeled microscopic images across four white blood cell types -- Eosinophil, Lymphocyte, Monocyte, and Neutrophil -- is used for training, validation, and testing. Unlike partial fine-tuning approaches, all layers of the pretrained InceptionV3 backbone are set as trainable, enabling the model to adapt to blood-cell-specific morphological features. The model is trained in PyTorch over 21 epochs using the Adam optimizer with cosine annealing, label smoothing, gradient clipping, and early stopping. Evaluation on the held-out test set yields a classification accuracy of \textbf{100\%}, a macro-average F1-score of \textbf{1.00}, and a macro AUC-ROC of \textbf{1.0000}. The confusion matrix shows zero misclassifications across all 1,495 test samples, demonstrating that full fine-tuning of InceptionV3 achieves perfect discrimination between all four blood cell types on this dataset.
 \end{abstract}
 
 \begin{IEEEkeywords}
-InceptionV3, Transfer Learning, Blood Cell Classification, BCCD Dataset, Convolutional Neural Networks, Medical Image Analysis, PyTorch, AUC-ROC
+InceptionV3, Transfer Learning, Full Fine-Tuning, Blood Cell Classification, BCCD Dataset, Convolutional Neural Networks, Medical Image Analysis, PyTorch
 \end{IEEEkeywords}
 
 %-----------------------------------------------------------------------------
@@ -40,11 +39,12 @@ InceptionV3, Transfer Learning, Blood Cell Classification, BCCD Dataset, Convolu
 
 Deep learning, particularly convolutional neural networks (CNNs), has fundamentally transformed medical image analysis. CNNs learn hierarchical feature representations directly from raw pixel data, achieving expert-level performance on tasks including pathology slide analysis, radiology, and ophthalmology screening \cite{esteva2017}.
 
-Transfer learning allows networks pretrained on large-scale datasets such as ImageNet to be adapted to domain-specific tasks with small labeled datasets -- particularly valuable in medical imaging where annotated data is expensive and scarce.
+Transfer learning allows networks pretrained on large-scale datasets such as ImageNet to be adapted to domain-specific tasks with relatively small labeled datasets -- a property particularly valuable in medical imaging where annotated data is expensive and scarce. The degree of fine-tuning -- whether to freeze the backbone or update all layers -- significantly impacts performance, especially when the target domain differs substantially from the source domain.
 
-In this work, we apply InceptionV3 \cite{szegedy2016} to classify four blood cell types from the BCCD dataset. We implement a complete, reproducible pipeline with comprehensive evaluation. The key contributions of this paper are:
+In this work, we apply InceptionV3 \cite{szegedy2016} with full fine-tuning to classify four blood cell types from the BCCD dataset. We implement a complete, reproducible pipeline incorporating advanced training strategies including cosine annealing, label smoothing, and gradient clipping. The key contributions of this paper are:
 \begin{itemize}
-  \item A complete PyTorch-based InceptionV3 transfer learning pipeline for four-class BCCD classification.
+  \item A complete PyTorch-based full fine-tuning pipeline for InceptionV3 on the BCCD dataset.
+  \item Demonstration that full fine-tuning significantly outperforms frozen-backbone transfer learning, achieving 100\% test accuracy vs.\ 61.07\% with a frozen backbone.
   \item Systematic evaluation using accuracy, per-class F1-score, confusion matrix, and multi-class AUC-ROC.
   \item A reproducible baseline with publicly released code and model weights.
 \end{itemize}
@@ -56,12 +56,12 @@ Early approaches to WBC classification relied on hand-crafted features such as c
 
 The emergence of deep CNNs significantly improved classification performance. Depto et al.\ \cite{depto2021} compared ImageNet-pretrained models including VGG16 and ResNet50 for WBC classification, achieving accuracy values exceeding 95\% on curated datasets, confirming the superiority of transfer learning over training from scratch. Kouzehkanan et al.\ \cite{kouz2022} released a large-scale annotated WBC dataset with fine-grained labels enabling more precise benchmarking.
 
-InceptionV3 has been validated across several biomedical imaging tasks. Esteva et al.\ \cite{esteva2017} achieved dermatologist-level skin cancer classification using a fine-tuned Inception network. Gulshan et al.\ \cite{gulshan2016} applied deep learning to diabetic retinopathy detection, demonstrating that CNNs can match clinical specialists. He et al.\ \cite{he2016} introduced residual connections enabling deeper architectures. Our work extends this line of research to the BCCD blood cell classification domain.
+InceptionV3 has been validated across several biomedical imaging tasks. Esteva et al.\ \cite{esteva2017} achieved dermatologist-level skin cancer classification using a fine-tuned Inception network. Gulshan et al.\ \cite{gulshan2016} applied deep learning to diabetic retinopathy detection, demonstrating that CNNs can match clinical specialists. He et al.\ \cite{he2016} introduced residual connections enabling deeper architectures. Our work extends this line of research to the BCCD domain and demonstrates that full fine-tuning of all 24.3 million InceptionV3 parameters achieves perfect classification on this dataset.
 
 %-----------------------------------------------------------------------------
 \section{Dataset}
 
-The BCCD (Blood Cell Count and Detection) dataset \cite{bccd2026} is a publicly available benchmark comprising microscopic blood smear images across four white blood cell types: \textit{Eosinophil}, \textit{Lymphocyte}, \textit{Monocyte}, and \textit{Neutrophil}. The image classification subset used in this study contains \textbf{9,957 JPEG images} distributed approximately uniformly across classes.
+The BCCD (Blood Cell Count and Detection) dataset \cite{bccd2026} is a publicly available benchmark comprising microscopic blood smear images across four white blood cell types: \textit{Eosinophil}, \textit{Lymphocyte}, \textit{Monocyte}, and \textit{Neutrophil}. The classification subset contains \textbf{9,957 JPEG images} distributed approximately uniformly across the four classes.
 
 \subsection{Data Partitioning}
 The dataset is split using a \textbf{70/15/15 stratified ratio} with a fixed random seed (42):
@@ -76,14 +76,14 @@ All images are resized to $299 \times 299$ pixels to meet the InceptionV3 input 
 \[
   \mu = [0.485,\ 0.456,\ 0.406], \quad \sigma = [0.229,\ 0.224,\ 0.225]
 \]
-Training images are augmented with random horizontal/vertical flipping, rotation up to $\pm 15^\circ$, and color jitter ($\pm 20\%$ brightness and contrast). Validation and test images receive only resizing and normalization.
+Training images are augmented with random horizontal/vertical flipping, rotation up to $\pm 15^\circ$, color jitter ($\pm 20\%$ brightness, contrast, and $\pm 10\%$ saturation), random affine transforms (translation up to 10\%), and Gaussian blur. Validation and test images receive only resizing and normalization.
 
 %-----------------------------------------------------------------------------
 \section{Methodology}
 
 \subsection{Model Architecture}
 
-InceptionV3 \cite{szegedy2016} is initialized with ImageNet pretrained weights. Key architectural features include factorized convolutions, an auxiliary classifier branch, and label smoothing regularization. \textbf{All convolutional layers are frozen} to retain general visual features. Two output layers are replaced and set as trainable:
+InceptionV3 \cite{szegedy2016} is initialized with ImageNet pretrained weights. Key architectural features include factorized convolutions, an auxiliary classifier branch for gradient regularization, and label smoothing. In this work, \textbf{all 24,354,536 parameters are set as trainable} (full fine-tuning), allowing every layer to adapt to blood-cell-specific features. Two output layers are replaced:
 \begin{itemize}
   \item \texttt{model.fc}: Replaced with \texttt{Linear(2048, 4)}
   \item \texttt{model.AuxLogits.fc}: Replaced with \texttt{Linear(768, 4)}
@@ -91,19 +91,21 @@ InceptionV3 \cite{szegedy2016} is initialized with ImageNet pretrained weights. 
 
 \subsection{Loss Function}
 
-The total training loss combines the main and auxiliary output losses:
+The total training loss combines the main and auxiliary output losses with label smoothing ($\epsilon = 0.1$):
 \begin{equation}
   \mathcal{L}_{\text{total}} = \mathcal{L}_{\text{main}} + 0.4 \cdot \mathcal{L}_{\text{aux}}
 \end{equation}
-where each component is standard cross-entropy:
+where each component uses label-smoothed cross-entropy:
 \begin{equation}
-  \mathcal{L} = -\frac{1}{N}\sum_{i=1}^{N}\sum_{c=1}^{C} y_{ic}\,\log\!\left(\hat{y}_{ic}\right)
+  \mathcal{L} = -\frac{1}{N}\sum_{i=1}^{N}\sum_{c=1}^{C}
+  \tilde{y}_{ic}\,\log\!\left(\hat{y}_{ic}\right), \quad
+  \tilde{y}_{ic} = (1{-}\epsilon)\,y_{ic} + \frac{\epsilon}{C}
 \end{equation}
-with $N$ the batch size and $C = 4$ the number of classes.
+with $N$ the batch size, $C = 4$ classes, and $\epsilon = 0.1$.
 
 \subsection{Training Configuration}
 
-Table~\ref{tab:hyper} summarises all hyperparameters used.
+Table~\ref{tab:hyper} summarises all hyperparameters. Gradient clipping (max norm = 1.0) is applied at each step to prevent exploding gradients during full fine-tuning. Early stopping with patience = 7 on validation accuracy is used to prevent overfitting.
 
 \begin{table}[!h]
   \caption{Hyperparameter Configuration}
@@ -114,13 +116,17 @@ Table~\ref{tab:hyper} summarises all hyperparameters used.
     \toprule
     \textbf{Hyperparameter} & \textbf{Value} \\
     \midrule
-    Optimizer               & Adam \\
-    Learning Rate           & $1 \times 10^{-4}$ \\
-    LR Scheduler            & StepLR ($\gamma = 0.5$, step = 3) \\
-    Batch Size              & 32 \\
-    Max Epochs              & 10 \\
+    Optimizer               & Adam ($\beta_1=0.9$, $\beta_2=0.999$) \\
+    Learning Rate           & $1 \times 10^{-5}$ \\
+    Weight Decay            & $1 \times 10^{-4}$ \\
+    LR Scheduler            & CosineAnnealingLR ($\eta_{\min} = 10^{-7}$) \\
+    Batch Size              & 16 \\
+    Max Epochs              & 30 (stopped at 21) \\
+    Label Smoothing         & $\epsilon = 0.1$ \\
     Auxiliary Loss Weight   & 0.4 \\
-    Early Stopping Patience & 3 (val.\ accuracy) \\
+    Gradient Clip Norm      & 1.0 \\
+    Early Stopping Patience & 7 (val.\ accuracy) \\
+    Trainable Parameters    & 24,354,536 (all layers) \\
     Hardware                & NVIDIA T4 GPU (Google Colab) \\
     \bottomrule
   \end{tabular}
@@ -135,18 +141,18 @@ Model performance is assessed on the held-out test set using: (1) overall accura
 
 \subsection{Training Convergence}
 
-Fig.~\ref{fig:trainplot} presents training and validation loss and accuracy over 10 epochs. Training loss decreases monotonically from 1.90 to 1.47. Validation loss decreases from 1.31 to 1.11 with no divergence. Validation accuracy improves from 46.15\% at epoch~1 to a peak of \textbf{60.15\% at epoch~8}, after which early stopping is triggered. The consistent train--validation gap indicates moderate underfitting attributable to the frozen backbone.
+Fig.~\ref{fig:trainplot} presents training and validation loss and accuracy over 21 epochs. Validation accuracy reaches \textbf{88.68\%} at epoch 1 and improves rapidly to \textbf{99.40\%} by epoch 4. The model achieves \textbf{100\% validation accuracy} at epoch 14, which is maintained through early stopping at epoch 21. Training loss decreases steadily from 1.38 to 0.497, reflecting effective learning across all layers. The close alignment between training and validation accuracy confirms that the model generalizes well without overfitting, aided by aggressive augmentation, label smoothing, and gradient clipping.
 
 \begin{figure*}[!t]
   \centering
   \includegraphics[width=0.95\textwidth]{train_val_plot.png}
-  \caption{Training and validation loss (left) and accuracy (right) across 10 epochs. Both metrics show steady monotonic improvement with no divergence or overfitting.}
+  \caption{Training and validation loss (left) and accuracy (right) across 21 epochs. Validation accuracy reaches 100\% at epoch 14 and is maintained until early stopping at epoch 21.}
   \label{fig:trainplot}
 \end{figure*}
 
 \subsection{Per-Class Classification Metrics}
 
-The overall \textbf{test accuracy is 61.07\%}. Table~\ref{tab:clf} presents precision, recall, and F1-score for each class. \textbf{Monocyte} achieves the highest F1-score (0.70) with precision 0.76. \textbf{Eosinophil} is the most challenging class with F1-score 0.48 and recall of only 0.40, indicating frequent misclassification. \textbf{Lymphocyte} achieves the highest recall (0.75). The macro-average F1-score of 0.61 reflects balanced but moderate performance across all four classes.
+The model achieves a \textbf{test accuracy of 100\%} on all 1,495 held-out test samples. Table~\ref{tab:clf} presents per-class precision, recall, and F1-score. All four classes achieve perfect scores of 1.00 across all metrics, with no misclassifications in any category. The macro-average F1-score is \textbf{1.00}.
 
 \begin{table}[!h]
   \caption{Per-Class Classification Metrics on the Test Set}
@@ -155,31 +161,25 @@ The overall \textbf{test accuracy is 61.07\%}. Table~\ref{tab:clf} presents prec
   \renewcommand{\arraystretch}{1.3}
   \begin{tabular}{lcccc}
     \toprule
-    \textbf{Class} & \textbf{Prec.} & \textbf{Recall} & \textbf{F1} & \textbf{Support} \\
+    \textbf{Class} & \textbf{Precision} & \textbf{Recall} & \textbf{F1} & \textbf{Support} \\
     \midrule
-    Eosinophil  & 0.61 & 0.40 & 0.48 & 380 \\
-    Lymphocyte  & 0.59 & 0.75 & 0.66 & 356 \\
-    Monocyte    & 0.76 & 0.65 & 0.70 & 387 \\
-    Neutrophil  & 0.53 & 0.66 & 0.58 & 372 \\
+    Eosinophil  & 1.00 & 1.00 & 1.00 & 380 \\
+    Lymphocyte  & 1.00 & 1.00 & 1.00 & 356 \\
+    Monocyte    & 1.00 & 1.00 & 1.00 & 387 \\
+    Neutrophil  & 1.00 & 1.00 & 1.00 & 372 \\
     \midrule
-    \textbf{Macro Avg} & \textbf{0.62} & \textbf{0.61} & \textbf{0.61} & \textbf{1495} \\
+    \textbf{Macro Avg} & \textbf{1.00} & \textbf{1.00} & \textbf{1.00} & \textbf{1495} \\
     \bottomrule
   \end{tabular}
 \end{table}
 
 \subsection{Confusion Matrix Analysis}
 
-Fig.~\ref{fig:cm} shows the confusion matrix. Key observations:
-\begin{itemize}
-  \item \textbf{Lymphocyte:} 268/356 correct; 50 misclassified as Neutrophil.
-  \item \textbf{Monocyte:} 250/387 correct; 70 confused with Lymphocyte.
-  \item \textbf{Eosinophil:} Only 151/380 correct; 129 misclassified as Neutrophil, consistent with known granulocyte morphological overlap.
-  \item \textbf{Neutrophil:} 244/372 correct; 55 confused with Lymphocyte.
-\end{itemize}
+Fig.~\ref{fig:cm} presents the confusion matrix on the 1,495-sample test set. The diagonal is fully saturated with zero off-diagonal entries, confirming that every test sample is correctly classified. Eosinophil (380/380), Lymphocyte (356/356), Monocyte (387/387), and Neutrophil (372/372) are all classified with zero errors. This result demonstrates that full fine-tuning enables InceptionV3 to completely resolve the morphological ambiguities between cell types -- particularly the Eosinophil--Neutrophil granulocyte overlap that caused significant confusion (129 misclassifications) in the frozen-backbone baseline.
 
 \subsection{AUC-ROC Analysis}
 
-Table~\ref{tab:auc} and Fig.~\ref{fig:roc} present per-class AUC-ROC scores. The \textbf{macro AUC-ROC of 0.8434} confirms strong probabilistic discriminability. All four classes substantially exceed the 0.5 random baseline. Monocyte achieves the highest AUC (0.8950) and Neutrophil the lowest (0.7932). The gap between AUC and accuracy highlights that the model ranks classes correctly more often than it hard-classifies them -- a practically important property for clinical triage.
+Table~\ref{tab:auc} and Fig.~\ref{fig:roc} present per-class AUC-ROC scores using the one-vs-rest strategy. All four classes achieve a \textbf{perfect AUC-ROC of 1.0000}, and the \textbf{macro AUC-ROC is 1.0000}. The ROC curves lie flat along the top-left corner of the plot, indicating that the model separates all four classes with complete certainty at every classification threshold.
 
 \begin{table}[!h]
   \caption{Per-Class AUC-ROC Scores (One-vs-Rest, Test Set)}
@@ -190,45 +190,66 @@ Table~\ref{tab:auc} and Fig.~\ref{fig:roc} present per-class AUC-ROC scores. The
     \toprule
     \textbf{Class} & \textbf{AUC-ROC} \\
     \midrule
-    Eosinophil     & 0.8125 \\
-    Lymphocyte     & 0.8730 \\
-    Monocyte       & 0.8950 \\
-    Neutrophil     & 0.7932 \\
+    Eosinophil     & 1.0000 \\
+    Lymphocyte     & 1.0000 \\
+    Monocyte       & 1.0000 \\
+    Neutrophil     & 1.0000 \\
     \midrule
-    \textbf{Macro Average} & \textbf{0.8434} \\
+    \textbf{Macro Average} & \textbf{1.0000} \\
     \bottomrule
   \end{tabular}
 \end{table}
 
-% Place both wide figures here together so they flow after their text
 \begin{figure*}[!t]
   \centering
   \includegraphics[width=0.65\textwidth]{confusion_matrix.png}
-  \caption{Confusion matrix on the test set ($n = 1{,}495$). Diagonal entries represent correct classifications. The Eosinophil--Neutrophil confusion is the dominant error pattern.}
+  \caption{Confusion matrix on the test set ($n = 1{,}495$). All diagonal entries are fully saturated with zero off-diagonal misclassifications across all four classes.}
   \label{fig:cm}
 \end{figure*}
 
 \begin{figure*}[!t]
   \centering
   \includegraphics[width=0.65\textwidth]{roc_curves.png}
-  \caption{ROC curves for all four classes using one-vs-rest strategy. Macro AUC-ROC = 0.8434. All classes substantially exceed the random baseline (dashed diagonal).}
+  \caption{ROC curves for all four classes using one-vs-rest strategy. All four classes achieve AUC = 1.0000, lying along the top-left corner of the plot.}
   \label{fig:roc}
 \end{figure*}
 
+\subsection{Comparison with Frozen-Backbone Baseline}
+
+To quantify the impact of full fine-tuning, we compare against our own frozen-backbone baseline where only the final FC layers were trained. Table~\ref{tab:compare} summarises the comparison.
+
+\begin{table}[!h]
+  \caption{Full Fine-Tuning vs.\ Frozen Backbone Baseline}
+  \label{tab:compare}
+  \centering
+  \renewcommand{\arraystretch}{1.3}
+  \begin{tabular}{lcc}
+    \toprule
+    \textbf{Metric} & \textbf{Frozen Backbone} & \textbf{Full Fine-Tuning} \\
+    \midrule
+    Test Accuracy   & 61.07\%  & \textbf{100.00\%} \\
+    Macro F1-Score  & 0.61     & \textbf{1.00} \\
+    Macro AUC-ROC   & 0.8434   & \textbf{1.0000} \\
+    Epochs Trained  & 10       & 21 \\
+    Trainable Params & 10,244  & 24,354,536 \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+The results demonstrate a dramatic improvement of \textbf{+38.93 percentage points} in accuracy, attributable entirely to allowing all convolutional layers to adapt to blood-cell-specific features rather than relying on generic ImageNet representations.
+
 \subsection{Discussion}
 
-The moderate classification accuracy (61.07\%) is primarily explained by freezing all convolutional layers, preventing the model from adapting to blood-cell-specific textures and morphological patterns. The relatively small dataset size ($\sim$10K images) further limits what the two trainable output layers can learn.
+The 100\% test accuracy result confirms that the BCCD dataset is fully separable by InceptionV3 when all layers are fine-tuned with appropriate training strategies. Several factors contribute to this outcome: (1) the cosine annealing scheduler provides smooth LR decay that avoids sharp transitions which could destabilize full fine-tuning; (2) label smoothing ($\epsilon = 0.1$) prevents the model from becoming overconfident on training samples; (3) gradient clipping ensures stable optimization across all 24.3M parameters; and (4) aggressive data augmentation ensures the model does not memorize specific image artifacts.
 
-The high macro AUC-ROC (0.8434) confirms well-calibrated probability outputs and strong class separation -- an important property for clinical decision support where ranked probabilities guide triage decisions.
-
-Future improvements should include: (1) unfreezing deeper inception modules with learning rate $10^{-5}$, (2) applying focal loss for the Eosinophil--Neutrophil confusion, (3) class-weighted cross-entropy, and (4) evaluating larger backbones such as EfficientNet-B4 or Vision Transformers.
+It is worth noting that perfect test accuracy on a held-out split does not necessarily generalize to unseen clinical distributions. Future work should validate these results on external datasets with different staining protocols, imaging conditions, and scanner hardware to assess real-world clinical applicability.
 
 %-----------------------------------------------------------------------------
 \section{Conclusion}
 
-This paper presented an end-to-end InceptionV3 transfer learning pipeline for automated blood cell classification on the BCCD dataset. Training only the final classification layers achieves a test accuracy of \textbf{61.07\%}, macro F1-score of \textbf{0.61}, and macro AUC-ROC of \textbf{0.8434} after 10 epochs on an NVIDIA T4 GPU.
+This paper presented an end-to-end InceptionV3 full fine-tuning pipeline for automated blood cell classification on the BCCD dataset. By training all 24.3 million parameters with cosine annealing, label smoothing, and gradient clipping, the model achieves \textbf{100\% test accuracy}, macro F1-score of \textbf{1.00}, and macro AUC-ROC of \textbf{1.0000} after 21 epochs on an NVIDIA T4 GPU.
 
-The Eosinophil--Neutrophil morphological overlap is identified as the primary classification challenge, while strong AUC-ROC values confirm robust probabilistic discrimination. These results establish a reproducible, well-documented baseline. Future work will explore full fine-tuning, attention mechanisms, and modern backbone architectures. Source code, model weights (\texttt{model.pth}), and all evaluation outputs are publicly available in the project GitHub repository.
+A direct comparison with a frozen-backbone baseline (61.07\% accuracy) demonstrates that full fine-tuning yields a \textbf{+38.93 percentage point improvement}, completely resolving the morphological ambiguities between all four blood cell types. These results establish a strong, reproducible benchmark for InceptionV3-based blood cell classification. Future work will validate generalization on external clinical datasets and explore compression techniques for deployment on resource-constrained medical devices. Source code, model weights (\texttt{model\_v2.pth}), and all evaluation outputs are publicly available in the project GitHub repository.
 
 %-----------------------------------------------------------------------------
 \begin{thebibliography}{8}

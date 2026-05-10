@@ -5,20 +5,22 @@
 ---
 
 ## Authors
+
 | Name | Entry No. |
 |---|---|
 | Parag Kumar | 23BCS060 |
-| Ojas Kumar | 23BCS059 |
-| Akaisha Sundhan | 23BCS009 |
+| Rohit Yadav | 23BCS077 |
+| Rishav Kumar Gupta | 23BCS076 |
 
 ---
 
 ## Overview
-Four-class blood cell image classification using **InceptionV3 transfer learning** in PyTorch on the BCCD dataset.
+
+Four-class blood cell image classification using **InceptionV3 full fine-tuning** in PyTorch on the BCCD dataset.
 
 | | |
 |---|---|
-| **Model** | InceptionV3 (ImageNet pretrained) |
+| **Model** | InceptionV3 (ImageNet pretrained, all layers fine-tuned) |
 | **Dataset** | BCCD — 9,957 microscopic blood cell images |
 | **Classes** | Eosinophil · Lymphocyte · Monocyte · Neutrophil |
 | **Framework** | PyTorch |
@@ -31,16 +33,27 @@ Four-class blood cell image classification using **InceptionV3 transfer learning
 
 | Metric | Value |
 |---|---|
-| Test Accuracy | **61.07%** |
-| Macro F1-Score | **0.61** |
-| Macro AUC-ROC | **0.8434** |
+| Test Accuracy | **100.00%** |
+| Macro F1-Score | **1.00** |
+| Macro AUC-ROC | **1.0000** |
+| Epochs Trained | 21 |
+
+### Per-Class Metrics
 
 | Class | Precision | Recall | F1 | AUC-ROC |
 |---|---|---|---|---|
-| Eosinophil | 0.61 | 0.40 | 0.48 | 0.8125 |
-| Lymphocyte | 0.59 | 0.75 | 0.66 | 0.8730 |
-| Monocyte | 0.76 | 0.65 | 0.70 | 0.8950 |
-| Neutrophil | 0.53 | 0.66 | 0.58 | 0.7932 |
+| Eosinophil | 1.00 | 1.00 | 1.00 | 1.0000 |
+| Lymphocyte | 1.00 | 1.00 | 1.00 | 1.0000 |
+| Monocyte | 1.00 | 1.00 | 1.00 | 1.0000 |
+| Neutrophil | 1.00 | 1.00 | 1.00 | 1.0000 |
+
+### vs Frozen Backbone Baseline
+
+| Metric | Frozen Backbone | Full Fine-Tuning |
+|---|---|---|
+| Test Accuracy | 61.07% | **100.00%** |
+| Macro F1 | 0.61 | **1.00** |
+| Macro AUC-ROC | 0.8434 | **1.0000** |
 
 ---
 
@@ -57,14 +70,14 @@ Four-class blood cell image classification using **InceptionV3 transfer learning
 ## Repository Structure
 
 ```
-├── BCCD_InceptionV3.py         # Full training script (run in Google Colab)
-├── model.pth                   # Trained model weights
+├── BCCD_InceptionV3.ipynb        # Colab notebook
+├── model_v2.pth                  # Trained model weights (full fine-tuning)
 ├── outputs/
 │   ├── train_val_plot.png
 │   ├── confusion_matrix.png
 │   └── roc_curves.png
 ├── paper/
-│   ├── main.tex                # IEEE LaTeX source
+│   ├── main.tex                  # IEEE LaTeX source
 │   ├── DeepLearningAssignment.pdf
 │   ├── train_val_plot.png
 │   ├── confusion_matrix.png
@@ -89,27 +102,36 @@ Download from Kaggle: https://www.kaggle.com/datasets/paultimothymooney/blood-ce
 **Cell 2 — Extract dataset:**
 ```python
 import zipfile, shutil, os
+
 with zipfile.ZipFile("/content/archive.zip", "r") as z:
     z.extractall("/content/raw")
+
 shutil.copytree(
     "/content/raw/dataset2-master/dataset2-master/images/TRAIN",
     "/content/data"
 )
 print(os.listdir("/content/data"))
-# Expected: ['EOSINOPHIL', 'LYMPHOCYTE', 'MONOCYTE', 'NEUTROPHIL']
 ```
 
-**Cell 3 — Run** `BCCD_InceptionV3.py`
+**Cell 3 — Run the training script**
 
-Runtime: ~18 minutes on T4 GPU.
+Runtime: ~2.5 hours on T4 GPU (21 epochs with early stopping).
 
 ---
 
 ## Model Details
 
-- Backbone frozen (all conv layers)
-- Trainable: `model.fc` → `Linear(2048, 4)` and `model.AuxLogits.fc` → `Linear(768, 4)`
-- Loss: Cross-entropy + 0.4 × auxiliary loss
-- Optimizer: Adam, lr = 1e-4
-- Scheduler: StepLR (γ = 0.5, every 3 epochs)
-- Early stopping: patience = 3 on val accuracy
+| Component | Detail |
+|---|---|
+| Backbone | InceptionV3 (all 24,354,536 params trainable) |
+| Output layer | `Linear(2048, 4)` |
+| Aux layer | `Linear(768, 4)` |
+| Loss | Cross-entropy + label smoothing (ε=0.1) + 0.4× aux loss |
+| Optimizer | Adam, lr=1e-5, weight decay=1e-4 |
+| Scheduler | CosineAnnealingLR (η_min=1e-7) |
+| Gradient clipping | max norm = 1.0 |
+| Early stopping | patience = 7 on val accuracy |
+
+---
+
+*April 2026 | B.Tech CSE 6th Semester | SoCSE, SMVDU*
